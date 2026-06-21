@@ -42,6 +42,8 @@
     color:var(--text);cursor:pointer;font-size:14px;font-weight:500;}
   .nav-item:hover{background:rgba(168,85,247,.12);}
   .nav-item .ic{font-size:16px;width:20px;text-align:center;}
+  .nav-item.logout-item{color:#f87171;}
+  .nav-item.logout-item:hover{background:rgba(248,113,113,.12);}
 
   .side-section-title{padding:14px 16px 6px;font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;}
 
@@ -94,6 +96,14 @@
     cursor:pointer;box-shadow:0 0 20px rgba(168,85,247,.4);}
   .save-btn:hover{filter:brightness(1.1);}
   .admin-hint{text-align:center;margin-top:14px;font-size:11px;color:var(--text-dim);}
+
+  /* ---------- RESUME CARD (muncul saat logout tapi masih ada chat tersimpan) ---------- */
+  .resume-card{display:none;}
+  .resume-card.show{display:block;}
+  .resume-card .resume-btn{width:100%;padding:13px;border:1px solid var(--purple);border-radius:12px;
+    background:rgba(168,85,247,.1);color:var(--purple-glow);font-weight:600;font-size:14px;cursor:pointer;margin-top:4px;}
+  .resume-card .resume-btn:hover{background:rgba(168,85,247,.2);}
+  .resume-card p{font-size:12.5px;color:var(--text-dim);margin-bottom:10px;line-height:1.5;}
 
   /* ---------- PREMIUM CARD ---------- */
   .premium-card h2{font-size:20px;margin-bottom:4px;}
@@ -230,6 +240,7 @@
       <div class="nav-item" onclick="newChat()"><span class="ic">＋</span> Obrolan Baru</div>
       <div class="nav-item" onclick="showSetup()"><span class="ic">🔑</span> API Keys</div>
       <div class="nav-item" onclick="showPremium()"><span class="ic">👑</span> Premium</div>
+      <div class="nav-item logout-item" onclick="logoutApp()"><span class="ic">🚪</span> Logout</div>
     </div>
     <div class="side-section-title">Riwayat</div>
     <div id="chat-list"></div>
@@ -251,6 +262,14 @@
 
     <!-- API KEY SETUP -->
     <div id="setup-screen">
+
+      <!-- RESUME CARD: tampil kalau user logout tapi masih ada chat tersimpan -->
+      <div class="setup-card resume-card" id="resume-card">
+        <h2>👋 Selamat datang kembali</h2>
+        <p>Kamu sudah logout, tapi riwayat chat dan API key kamu masih tersimpan aman di browser ini.</p>
+        <button class="resume-btn" onclick="resumeChat()">↩ Masuk Lagi & Lanjutkan Chat</button>
+      </div>
+
       <div class="setup-card">
         <h2>Pasang API Key</h2>
         <div class="sub">Masukkan hingga 4 API key dari provider AI gratis. Key disimpan hanya di browser kamu (localStorage), tidak dikirim ke server manapun.</div>
@@ -294,13 +313,13 @@
         <div class="key-group" style="margin-top:4px;">
           <label>Masukkan Kode Premium (dikirim admin lewat WA)</label>
           <div class="code-input-row">
-            <input type="text" id="premium-code-input" placeholder="PREM-XXXXX" maxlength="12">
+            <input type="text" id="premium-code-input" placeholder="PREM-XXXXX" maxlength="40">
             <button onclick="activatePremium()">Aktivasi</button>
           </div>
           <div id="activation-msg" class="activation-msg"></div>
         </div>
 
-        <div class="admin-gen-toggle" onclick="toggleAdminGen()">·</div>
+        <div class="admin-gen-toggle" onclick="toggleAdminGen()">⚙ Admin</div>
         <div class="admin-gen-box" id="admin-gen-box">
           <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">Generator kode (khusus admin)</div>
           <button class="save-btn" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);box-shadow:none;" onclick="generateCode()">🎲 Generate Kode Baru</button>
@@ -355,6 +374,7 @@ setInterval(shootStar, 1400);
 
 /* ================= CONFIG ================= */
 const ADMIN_TRIGGER = "QQRIADMINSLOOT";
+const MASTER_PREMIUM_CODE = "103883849291AODCBWIW9CU10394729";
 const GOPAY_NUMBER = "085194654911";
 const WA_NUMBER = "6285194654911"; // format internasional, tanpa + dan tanpa 0 di depan
 const FREE_LIMIT = 30;
@@ -386,6 +406,31 @@ function updateProviderPill(){
 function toggleSidebar(){
   document.getElementById('sidebar').classList.toggle('collapsed');
   document.getElementById('sidebar-overlay').classList.toggle('show');
+}
+
+/* ================= LOGOUT / RESUME ================= */
+function logoutApp(){
+  localStorage.setItem('voidchat_logged_out', 'true');
+  document.getElementById('premium-card').style.display='none';
+  document.getElementById('chat-screen').style.display='none';
+  document.getElementById('setup-screen').style.display='flex';
+  document.getElementById('sidebar').classList.add('collapsed');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+  updateResumeCard();
+  showToast('Berhasil logout. Chat & API key kamu tetap tersimpan.');
+}
+function resumeChat(){
+  localStorage.removeItem('voidchat_logged_out');
+  const hasKeys = Object.values(loadKeys()).some(v=>v);
+  if(currentChatId && chats[currentChatId] && hasKeys){ showChat(); }
+  else { showSetup(); }
+}
+function updateResumeCard(){
+  const card = document.getElementById('resume-card');
+  const loggedOut = localStorage.getItem('voidchat_logged_out') === 'true';
+  const hasData = Object.keys(chats).length > 0 || Object.values(loadKeys()).some(v=>v);
+  if(loggedOut && hasData){ card.classList.add('show'); }
+  else { card.classList.remove('show'); }
 }
 
 /* ================= PREMIUM / QUOTA SYSTEM ================= */
@@ -428,6 +473,7 @@ function showPremium(){
   document.getElementById('chat-screen').style.display='none';
   document.getElementById('sidebar').classList.add('collapsed');
   document.getElementById('sidebar-overlay').classList.remove('show');
+  updateResumeCard();
   const msg = encodeURIComponent("Halo, saya sudah transfer Rp10.000 ke GoPay untuk Premium VoidChat AI. Ini bukti foto transfer saya (terlampir).");
   document.getElementById('wa-confirm-btn').href = `https://wa.me/${WA_NUMBER}?text=${msg}`;
   if(isPremium()){
@@ -437,16 +483,20 @@ function showPremium(){
 function copyGopay(){ navigator.clipboard.writeText(GOPAY_NUMBER).then(()=>showToast('Nomor GoPay disalin!')); }
 
 function getValidCodes(){ return JSON.parse(localStorage.getItem('voidchat_valid_codes')||'[]'); }
+
 function activatePremium(){
   const input = document.getElementById('premium-code-input');
   const code = input.value.trim().toUpperCase();
   const msgEl = document.getElementById('activation-msg');
   const validCodes = getValidCodes();
-  if(validCodes.includes(code) && !isPremium()){
+  const isMaster = (code === MASTER_PREMIUM_CODE);
+  if((isMaster || validCodes.includes(code)) && !isPremium()){
     localStorage.setItem('voidchat_premium','true');
-    const used = JSON.parse(localStorage.getItem('voidchat_used_codes')||'[]');
-    used.push(code);
-    localStorage.setItem('voidchat_used_codes', JSON.stringify(used));
+    if(!isMaster){
+      const used = JSON.parse(localStorage.getItem('voidchat_used_codes')||'[]');
+      used.push(code);
+      localStorage.setItem('voidchat_used_codes', JSON.stringify(used));
+    }
     msgEl.textContent = '✅ Premium aktif! Chat unlimited sekarang tersedia.';
     msgEl.className = 'activation-msg ok';
     updateTopbarStatus();
@@ -487,8 +537,10 @@ function showSetup(){
   document.getElementById('chat-screen').style.display='none';
   document.getElementById('sidebar').classList.add('collapsed');
   document.getElementById('sidebar-overlay').classList.remove('show');
+  updateResumeCard();
 }
 function showChat(){
+  localStorage.removeItem('voidchat_logged_out');
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('chat-screen').style.display='flex';
   document.getElementById('sidebar').classList.add('collapsed');
@@ -743,12 +795,14 @@ async function callCloudflare(keyCombo, text){
 function init(){
   updateProviderPill();
   renderChatList();
+  const loggedOut = localStorage.getItem('voidchat_logged_out') === 'true';
   const hasKeys = Object.values(loadKeys()).some(v=>v);
-  if(currentChatId && chats[currentChatId]){ if(hasKeys) showChat(); else showSetup(); }
+  if(loggedOut){ showSetup(); }
+  else if(currentChatId && chats[currentChatId]){ if(hasKeys) showChat(); else showSetup(); }
   else { showSetup(); }
   setInterval(updateTopbarStatus, 30000);
 }
 init();
 </script>
 </body>
-  </html>
+                                 </html>
