@@ -97,7 +97,7 @@
   .save-btn:hover{filter:brightness(1.1);}
   .admin-hint{text-align:center;margin-top:14px;font-size:11px;color:var(--text-dim);}
 
-  /* ---------- RESUME CARD (muncul saat logout tapi masih ada chat tersimpan) ---------- */
+  /* ---------- RESUME CARD ---------- */
   .resume-card{display:none;}
   .resume-card.show{display:block;}
   .resume-card .resume-btn{width:100%;padding:13px;border:1px solid var(--purple);border-radius:12px;
@@ -263,7 +263,7 @@
     <!-- API KEY SETUP -->
     <div id="setup-screen">
 
-      <!-- RESUME CARD: tampil kalau user logout tapi masih ada chat tersimpan -->
+      <!-- RESUME CARD -->
       <div class="setup-card resume-card" id="resume-card">
         <h2>👋 Selamat datang kembali</h2>
         <p>Kamu sudah logout, tapi riwayat chat dan API key kamu masih tersimpan aman di browser ini.</p>
@@ -319,15 +319,24 @@
           <div id="activation-msg" class="activation-msg"></div>
         </div>
 
+        <!-- GEMBOK ADMIN: harus masukin kode owner dulu sebelum bisa generate kode premium -->
         <div class="admin-gen-toggle" onclick="toggleAdminGen()">⚙ Admin</div>
         <div class="admin-gen-box" id="admin-gen-box">
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">Generator kode (khusus admin)</div>
-          <button class="save-btn" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);box-shadow:none;" onclick="generateCode()">🎲 Generate Kode Baru</button>
-          <div class="gen-out" id="gen-out" style="display:none;">
-            <input type="text" id="gen-result" readonly>
-            <button onclick="copyGenCode()">Salin</button>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">Masukkan kode owner untuk akses generator</div>
+          <div class="code-input-row" id="admin-lock-row">
+            <input type="text" id="admin-owner-code" placeholder="Kode Owner">
+            <button onclick="unlockAdminGen()">Buka</button>
           </div>
-          <div class="admin-gen-list" id="admin-gen-list"></div>
+          <div id="admin-lock-msg" class="activation-msg"></div>
+
+          <div id="admin-gen-unlocked" style="display:none;">
+            <button class="save-btn" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);box-shadow:none;" onclick="generateCode()">🎲 Generate Kode Baru</button>
+            <div class="gen-out" id="gen-out" style="display:none;">
+              <input type="text" id="gen-result" readonly>
+              <button onclick="copyGenCode()">Salin</button>
+            </div>
+            <div class="admin-gen-list" id="admin-gen-list"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -507,7 +516,24 @@ function activatePremium(){
   }
 }
 
-function toggleAdminGen(){ document.getElementById('admin-gen-box').classList.toggle('show'); renderAdminGenList(); }
+/* ---- Gembok admin generator ---- */
+function toggleAdminGen(){
+  document.getElementById('admin-gen-box').classList.toggle('show');
+}
+function unlockAdminGen(){
+  const input = document.getElementById('admin-owner-code');
+  const msgEl = document.getElementById('admin-lock-msg');
+  const code = input.value.trim().toUpperCase();
+  if(code === MASTER_PREMIUM_CODE){
+    document.getElementById('admin-lock-row').style.display='none';
+    msgEl.textContent='';
+    document.getElementById('admin-gen-unlocked').style.display='block';
+    renderAdminGenList();
+  } else {
+    msgEl.textContent = '❌ Kode owner salah.';
+    msgEl.className = 'activation-msg err';
+  }
+}
 function generateCode(){
   const code = 'PREM-' + Math.random().toString(36).substring(2,7).toUpperCase();
   const validCodes = getValidCodes();
@@ -805,4 +831,4 @@ function init(){
 init();
 </script>
 </body>
-                                 </html>
+  </html>
